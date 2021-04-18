@@ -251,7 +251,7 @@ void AT_NextEvent(AT *at)
         return;
     }
     switch (at->c) {
-        case '\v':  at->ev = AT_EV_CR; return;
+        case '\r':  at->ev = AT_EV_CR; return;
         case '\n':  at->ev = AT_EV_LF; return;
         case '+':  
         case '#': 

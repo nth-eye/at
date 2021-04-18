@@ -35,6 +35,6 @@ void AT_SendCmd(const char *cmd, size_t len)
                 break;
         }
     }
-    AT_Tx('\v');
+    AT_Tx('\r');
     AT_Tx('\n');
 }
