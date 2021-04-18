@@ -3,26 +3,12 @@
 #include <time.h>
 #include "at.h"
 
-void delay(int n_seconds)
-{
-    // Converting time into milli_seconds
-    int ms = 1000 * n_seconds;
-    // Storing start time
-    clock_t start_time = clock();
-    // looping till required time is not achieved
-    while (clock() < start_time + ms);
-}
-
 void test(AT *at)
 {
     printf("\n-- +TEST");
     if (at->args)
         printf(": %s\n", at->args);
     printf(" --\n");
-
-    char *cmd = "+TEST: 5s passed";
-    AT_SendCmd(cmd, strlen(cmd));
-    delay(5);
 }
 
 void test_ok(AT *at)
@@ -37,7 +23,7 @@ void test_error(AT *at)
 
 void no_res_cbks(AT *at)
 {
-    printf("\n-- +TEST");
+    printf("\n-- #NORESCBKS");
     if (at->args)
         printf(": %s\n", at->args);
     printf(" --\n");
@@ -47,8 +33,8 @@ int main(void)
 {
     AT_Callback test_res_cbks[] = { test_ok, NULL, NULL, NULL, test_error, NULL, NULL, NULL, NULL };
     AT_Cmd callbacks[] = { 
-        { "+TEST",          test,           test_res_cbks },
-        { "#NO_RES_CBKS",   no_res_cbks,    NULL },
+        { "+TEST",      test,           test_res_cbks },
+        { "#NORESCBKS", no_res_cbks,    NULL },
     };
     char buf[128];
 

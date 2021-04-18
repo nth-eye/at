@@ -190,12 +190,12 @@ static AT_State HANDLE_Result(AT *at, int res)
 {
     at->code = res;
     if (at->cb_idx < at->n_cbks) {
-        at->cb_idx = at->n_cbks;
-        if (at->cbks->res_cbks && 
-            at->cbks->res_cbks[res])
+        if (at->cbks[at->cb_idx].res_cbks && 
+            at->cbks[at->cb_idx].res_cbks[res])
         {
-            at->cbks->res_cbks[res](at);
+            at->cbks[at->cb_idx].res_cbks[res](at);
         }
+        at->cb_idx = at->n_cbks;
     }
     return AT_ST_IDLE;
 }
