@@ -67,16 +67,12 @@ static AT_State ON_Start(AT *at)
 
 static AT_State ON_Rsp(AT *at)
 {
-    if (AT_SaveChar(at))
-        return AT_ST_RSP;
-    return ON_Err(at);
+    return AT_SaveChar(at) ? AT_ST_RSP : ON_Err(at);
 }
 
 static AT_State ON_Code(AT *at)
 {
-    if (AT_SaveChar(at))
-        return AT_ST_CODE;
-    return ON_Err(at);
+    return AT_SaveChar(at) ? AT_ST_CODE : ON_Err(at);
 }
 
 static AT_State ON_NewRsp(AT *at)
@@ -103,11 +99,10 @@ static AT_State ON_EndCR(AT *at)
 
 static AT_State ON_EndLF(AT *at)
 {
-    if (at->parse_st == AT_ST_RSP) {
+    if (at->parse_st == AT_ST_RSP)
         return HANDLE_Rsp(at);
-    } else {
+    else
         return HANDLE_Text(at);
-    }
 }
 
 static AT_State ON_Semi(AT *at)
@@ -124,9 +119,7 @@ static AT_State ON_Space(AT *at)
 
 static AT_State ON_Args(AT *at)
 {
-    if (AT_SaveChar(at))
-        return AT_ST_ARGS;
-    return ON_Err(at);
+    return AT_SaveChar(at) ? AT_ST_ARGS : ON_Err(at);
 }
 
 static AT_State ON_NewText(AT *at)

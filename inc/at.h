@@ -4,8 +4,6 @@
 #include <stddef.h>
 #include "at_platform.h"
 
-#define SIZE(x) (sizeof(x) / sizeof(x[0]))
-
 #ifndef AT_PRINT
 #define AT_PRINT(...)
 #warning "To enable debug-print please define AT_PRINT as output mechanism";
