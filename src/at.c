@@ -213,6 +213,8 @@ void AT_Init(AT *at, const AT_Cfg *cfg)
     at->buf         = cfg->buf;
     at->cbks_size   = cfg->cbks_size;
     at->buf_size    = cfg->buf_size;
+    at->cb_idx      = cfg->cbks_size;
+    at->c           = 0;
     AT_Clear(at);
 }
 
@@ -225,7 +227,7 @@ void AT_Process(AT *at)
 
     AT_PRINT("\nAT_Process: [0x%02x] + ", at->st);
     if (at->status != AT_STATUS_OK) {
-        AT_PRINT("[0x%02x] -> failed\n", at->status);
+        AT_PRINT("[0x%02x] -> failed", at->status);
         return;
     }
     AT_PRINT("[0x%02x] -> ", at->ev);

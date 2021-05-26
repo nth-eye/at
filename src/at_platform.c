@@ -11,41 +11,39 @@ const char *AT_RESULTS[AT_CODE_size] = {
 
 AT_Status AT_Tx(char c)
 {
-    if (putchar(c) == EOF)
-        return AT_STATUS_FAIL;
-    return AT_STATUS_OK;
+    return putc(c, stdout) == EOF ? AT_STATUS_FAIL : AT_STATUS_OK;
 }
 
 AT_Status AT_Rx(char *c)
 {
-    *c = getchar();
+    *c = getc(stdin);
 
-    if (*c == EOF)
-        return AT_STATUS_FAIL;
-    return AT_STATUS_OK;
+    return *c == EOF ? AT_STATUS_FAIL : AT_STATUS_OK;
 }
 
-void AT_Send(const char *cmd, ...)
+AT_Status AT_Send(const char *cmd, ...)
 {
     char buf[256];
 
     va_list args;
     va_start(args, cmd);
-    vsnprintf(buf, 256, cmd, args);
+
+    int len = vsnprintf(buf, sizeof(buf) - 2, cmd, args);
+    if (len < 0 || len > (int) sizeof(buf) - 3)
+        return AT_STATUS_FAIL;
+
     va_end(args);
 
-    size_t len = strlen(buf);
+    buf[len++] = '\r';
+    buf[len++] = '\n';
+    buf[len]   = 0;
 
-    for (size_t i = 0; i < len; ++i) {
+    for (int i = 0; i < len; ++i) {
         switch (AT_Tx(buf[i])) {
-            case AT_STATUS_OK:
-                break;
-            case AT_STATUS_FAIL:
-                break;
-            case AT_STATUS_TIMEOUT:
-                break;
+            case AT_STATUS_OK:      break;
+            case AT_STATUS_FAIL:    return AT_STATUS_FAIL;
+            case AT_STATUS_TIMEOUT: return AT_STATUS_TIMEOUT;
         }
     }
-    AT_Tx('\r');
-    AT_Tx('\n');
+    return AT_STATUS_OK;
 }

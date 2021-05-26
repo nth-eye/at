@@ -42,8 +42,6 @@ int main(void)
     AT at;
 
     AT_Init(&at, &cfg);
-    AT_Process(&at);
-    // AT_Send("AT+TEST: %d", 777);
 
     while (1) {
         AT_Process(&at);
