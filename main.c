@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include "at.h"
 
+#define SIZE(x) (sizeof(x) / sizeof(x[0]))
+
 void test(AT *at)
 {
-    printf("\n-- +TEST");
-    if (at->args)
-        printf(": %s\n", at->args);
-    printf(" --\n");
+    printf("\n +TEST: %s\n", at->args ? at->args : "NO ARGS");
 }
 
 void test_ok(AT *at)
@@ -21,10 +20,7 @@ void test_error(AT *at)
 
 void no_res_cbks(AT *at)
 {
-    printf("\n-- #NORESCBKS");
-    if (at->args)
-        printf(": %s\n", at->args);
-    printf(" --\n");
+    printf("\n #NORESCBKS: %s\n", at->args ? at->args : "NO ARGS");
 }
 
 int main(void) 
@@ -39,7 +35,7 @@ int main(void)
     const AT_Cfg cfg = {
         .cbks = callbacks,
         .buf = buf, 
-        .n_cbks = SIZE(callbacks),
+        .cbks_size = SIZE(callbacks),
         .buf_size = SIZE(buf),
     };
 
@@ -47,6 +43,7 @@ int main(void)
 
     AT_Init(&at, &cfg);
     AT_Process(&at);
+    // AT_Send("AT+TEST: %d", 777);
 
     while (1) {
         AT_Process(&at);

@@ -28,6 +28,6 @@ typedef enum {
 
 AT_Status AT_Tx(char c);
 AT_Status AT_Rx(char *c);
-void AT_SendCmd(const char *cmd, size_t len);
+void AT_Send(const char *cmd, ...);
 
 #endif // AT_PLATFORM_H

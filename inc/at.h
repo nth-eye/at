@@ -48,7 +48,7 @@ typedef struct {
 typedef struct {
     AT_Cmd  *cbks;
     char    *buf;
-    size_t  n_cbks;
+    size_t  cbks_size;
     size_t  buf_size;
 } AT_Cfg;
 
@@ -63,7 +63,7 @@ struct AT {
     char        *buf;
     char        *args;
     char        c;
-    size_t      n_cbks;
+    size_t      cbks_size;
     size_t      buf_size;
     size_t      pos;
     size_t      cb_idx;
@@ -71,6 +71,6 @@ struct AT {
 
 void AT_Init(AT *at, const AT_Cfg *cfg);
 void AT_Process(AT *at);
-void AT_NextEvent(AT *at);
+void AT_Clear(AT *at);
 
 #endif // AT_H
