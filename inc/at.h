@@ -2,7 +2,7 @@
 #define AT_H
 
 #include <stddef.h>
-#include "at_platform.h"
+#include "at_hal.h"
 
 #ifndef AT_PRINT
 #define AT_PRINT(...)

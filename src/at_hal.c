@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "at_platform.h"
+#include "at_hal.h"
 
 // NOTE: Add manufacturer-specific response codes at the end.
 const char *AT_RESULTS[AT_CODE_size] = { 
