@@ -1,7 +1,11 @@
-#ifndef AT_PLATFORM_H
-#define AT_PLATFORM_H
+#ifndef AT_HAL_H
+#define AT_HAL_H
 
 #include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define AT_PRINT printf
 
@@ -30,4 +34,8 @@ AT_Status AT_Tx(char c);
 AT_Status AT_Rx(char *c);
 AT_Status AT_Send(const char *cmd, ...);
 
-#endif // AT_PLATFORM_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif // AT_HAL_H

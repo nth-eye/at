@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include "at_hal.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef AT_PRINT
 #define AT_PRINT(...)
 #warning "To enable debug-print please define AT_PRINT as output mechanism";
@@ -72,5 +76,9 @@ struct AT {
 void AT_Init(AT *at, const AT_Cfg *cfg);
 void AT_Process(AT *at);
 void AT_Clear(AT *at);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AT_H
