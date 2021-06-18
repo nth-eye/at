@@ -3,9 +3,9 @@
 #include <stdbool.h>
 #include "at.h"
 
-extern const char *AT_RESULTS[AT_CODE_size];
+extern const char *AT_RESULTS[AT_CODE_num];
 
-static bool AT_SaveChar(AT *at)
+static bool at_save_c(AT *at)
 {
     if (at->pos < at->buf_size) {
         at->buf[at->pos++] = at->c;
@@ -14,10 +14,10 @@ static bool AT_SaveChar(AT *at)
     return false;
 }
 
-static void AT_NextEvent(AT *at)
+static void at_next_evt(AT *at)
 {
     at->prev_ev = at->ev;
-    at->status = AT_Rx(&(at->c));
+    at->status = at_rx(&(at->c));
 
     if (at->status != AT_STATUS_OK)
         return;
@@ -46,15 +46,15 @@ static void AT_NextEvent(AT *at)
     at->ev = AT_EV_OTHER;
 }
 
-static AT_State AT_Err(AT *at)
+static AT_State at_err(AT *at)
 {
     at->cb_idx = at->cbks_size;
-    AT_Clear(at);
+    at_clear(at);
     return AT_ST_IDLE;
 }
 
 
-static AT_State HANDLE_Result(AT *at, int res)
+static AT_State handle_res(AT *at, int res)
 {
     at->code = res;
     if (at->cb_idx < at->cbks_size) {
@@ -68,7 +68,7 @@ static AT_State HANDLE_Result(AT *at, int res)
     return AT_ST_IDLE;
 }
 
-static AT_State HANDLE_Rsp(AT *at)
+static AT_State handle_rsp(AT *at)
 {
     for (size_t i = 0; i < at->cbks_size; ++i) {
         if (at->cbks[i].cb && !strcmp(at->cbks[i].cmd, at->buf)) {
@@ -80,130 +80,130 @@ static AT_State HANDLE_Rsp(AT *at)
     return AT_ST_IDLE;
 }
 
-static AT_State HANDLE_Code(AT *at)
+static AT_State handle_code(AT *at)
 {
     at->buf[at->pos] = 0;
 
     long res = strtol(at->buf, NULL, 10);
 
     if (res == AT_CODE_RESERVED)
-        return AT_Err(at);
+        return at_err(at);
 
     if (res >= AT_CODE_OK && 
-        res <  AT_CODE_size)
+        res <  AT_CODE_num)
     {
-        return HANDLE_Result(at, res);
+        return handle_res(at, res);
     }
-    return AT_Err(at);
+    return at_err(at);
 }
 
-static AT_State HANDLE_Text(AT *at)
+static AT_State handle_text(AT *at)
 {
     at->buf[--(at->pos)] = 0;
 
-    for (int i = 0; i < AT_CODE_size; ++i) {
+    for (int i = 0; i < AT_CODE_num; ++i) {
         if (!strcmp(AT_RESULTS[i], at->buf) && i != AT_CODE_RESERVED)
-            return HANDLE_Result(at, i);
+            return handle_res(at, i);
     }
-    return AT_Err(at);
+    return at_err(at);
 }
 
 
-static AT_State ON_Start(AT *at)
+static AT_State on_start(AT *at)
 {
     if (at->ev == AT_EV_LF && at->prev_ev != AT_EV_CR)
-        return AT_Err(at);
+        return at_err(at);
     return AT_ST_START;
 }
 
-static AT_State ON_Rsp(AT *at)
+static AT_State on_rsp(AT *at)
 {
-    return AT_SaveChar(at) ? AT_ST_RSP : AT_Err(at);
+    return at_save_c(at) ? AT_ST_RSP : at_err(at);
 }
 
-static AT_State ON_Code(AT *at)
+static AT_State on_code(AT *at)
 {
-    return AT_SaveChar(at) ? AT_ST_CODE : AT_Err(at);
+    return at_save_c(at) ? AT_ST_CODE : at_err(at);
 }
 
-static AT_State ON_NewRsp(AT *at)
+static AT_State on_new_rsp(AT *at)
 {
-    if (at->prev_ev != AT_EV_CR && AT_SaveChar(at)) {
+    if (at->prev_ev != AT_EV_CR && at_save_c(at)) {
         at->parse_st = AT_ST_RSP;
         return AT_ST_RSP;
     }
-    return AT_Err(at);
+    return at_err(at);
 }
 
-static AT_State ON_EndCR(AT *at)
+static AT_State on_end_cr(AT *at)
 {
     if (at->parse_st == AT_ST_RSP) {
         if (at->prev_ev == AT_EV_CR)
-            return AT_Err(at);
+            return at_err(at);
         at->buf[at->pos++] = 0;
     } else {
-        if (!AT_SaveChar(at))
-            return AT_Err(at);
+        if (!at_save_c(at))
+            return at_err(at);
     }
     return AT_ST_END;
 }
 
-static AT_State ON_EndLF(AT *at)
+static AT_State on_end_lf(AT *at)
 {
     if (at->parse_st == AT_ST_RSP)
-        return HANDLE_Rsp(at);
+        return handle_rsp(at);
     else
-        return HANDLE_Text(at);
+        return handle_text(at);
 }
 
-static AT_State ON_Semi(AT *at)
+static AT_State on_semi(AT *at)
 {
     return AT_ST_ARGS_START;
 }
 
-static AT_State ON_Space(AT *at)
+static AT_State on_space(AT *at)
 {
     at->buf[at->pos++] = 0;
     at->args = &at->buf[at->pos];
     return AT_ST_ARGS;
 }
 
-static AT_State ON_Args(AT *at)
+static AT_State on_args(AT *at)
 {
-    return AT_SaveChar(at) ? AT_ST_ARGS : AT_Err(at);
+    return at_save_c(at) ? AT_ST_ARGS : at_err(at);
 }
 
-static AT_State ON_NewText(AT *at)
+static AT_State on_new_text(AT *at)
 {
-    if (at->prev_ev == AT_EV_LF && AT_SaveChar(at)) {
+    if (at->prev_ev == AT_EV_LF && at_save_c(at)) {
         at->parse_st = AT_ST_TEXT;
         return AT_ST_TEXT;
     }
-    return AT_Err(at);
+    return at_err(at);
 }
 
-static AT_State ON_Text(AT *at)
+static AT_State on_text(AT *at)
 {
-    if (at->parse_st == AT_ST_TEXT && AT_SaveChar(at))
+    if (at->parse_st == AT_ST_TEXT && at_save_c(at))
         return AT_ST_TEXT;
-    return AT_Err(at);
+    return at_err(at);
 }
 
 
-static const AT_Trans TABLE[AT_ST_size][AT_EV_size] = 
-{   // AT_EV_CR,    AT_EV_LF,   AT_EV_MARK, AT_EV_SEMI, AT_EV_SPACE,    AT_EV_DIGIT,    AT_EV_LETTER,   AT_EV_OTHER
-    { ON_Start,     NULL,       ON_NewRsp,  NULL,       NULL,           ON_Code,        NULL,           NULL        }, // AT_ST_IDLE
-    { ON_Start,     ON_Start,   ON_NewRsp,  ON_NewText, ON_NewText,     ON_NewText,     ON_NewText,     ON_NewText  }, // AT_ST_START
-    { ON_EndCR,     NULL,       ON_Rsp,     ON_Semi,    NULL,           ON_Rsp,         ON_Rsp,         NULL        }, // AT_ST_RSP
-    { NULL,         NULL,       NULL,       NULL,       ON_Space,       NULL,           NULL,           NULL        }, // AT_ST_ARGS_START
-    { ON_EndCR,     NULL,       ON_Args,    ON_Args,    ON_Args,        ON_Args,        ON_Args,        ON_Args     }, // AT_ST_ARGS
-    { HANDLE_Code,  NULL,       NULL,       NULL,       NULL,           ON_Code,        NULL,           NULL        }, // AT_ST_CODE
-    { ON_EndCR,     ON_Text,    ON_Text,    ON_Text,    ON_Text,        ON_Text,        ON_Text,        ON_Text     }, // AT_ST_TEXT
-    { ON_EndCR,     ON_EndLF,   ON_Text,    ON_Text,    ON_Text,        ON_Text,        ON_Text,        ON_Text     }, // AT_ST_END
+static const AT_Trans TABLE[AT_ST_num][AT_EV_num] = 
+{   // AT_EV_CR,    AT_EV_LF,   AT_EV_MARK, AT_EV_SEMI,     AT_EV_SPACE,    AT_EV_DIGIT,    AT_EV_LETTER,   AT_EV_OTHER
+    { on_start,     NULL,       on_new_rsp, NULL,           NULL,           on_code,        NULL,           NULL        }, // AT_ST_IDLE
+    { on_start,     on_start,   on_new_rsp, on_new_text,    on_new_text,    on_new_text,    on_new_text,    on_new_text }, // AT_ST_START
+    { on_end_cr,    NULL,       on_rsp,     on_semi,        NULL,           on_rsp,         on_rsp,         NULL        }, // AT_ST_RSP
+    { NULL,         NULL,       NULL,       NULL,           on_space,       NULL,           NULL,           NULL        }, // AT_ST_ARGS_START
+    { on_end_cr,    NULL,       on_args,    on_args,        on_args,        on_args,        on_args,        on_args     }, // AT_ST_ARGS
+    { handle_code,  NULL,       NULL,       NULL,           NULL,           on_code,        NULL,           NULL        }, // AT_ST_CODE
+    { on_end_cr,    on_text,    on_text,    on_text,        on_text,        on_text,        on_text,        on_text     }, // AT_ST_TEXT
+    { on_end_cr,    on_end_lf,  on_text,    on_text,        on_text,        on_text,        on_text,        on_text     }, // AT_ST_END
 };
 
 
-void AT_Init(AT *at, const AT_Cfg *cfg)
+void at_init(AT *at, const AT_Cfg *cfg)
 {
     at->status      = AT_STATUS_OK;
     at->st          = AT_ST_IDLE;
@@ -215,17 +215,17 @@ void AT_Init(AT *at, const AT_Cfg *cfg)
     at->buf_size    = cfg->buf_size;
     at->cb_idx      = cfg->cbks_size;
     at->c           = 0;
-    AT_Clear(at);
+    at_clear(at);
 }
 
-void AT_Process(AT *at)
+void at_process(AT *at)
 {    
-    AT_NextEvent(at);
+    at_next_evt(at);
 
     if (at->st == AT_ST_IDLE)
-        AT_Clear(at);
+        at_clear(at);
 
-    AT_PRINT("\nAT_Process: [0x%02x] + ", at->st);
+    AT_PRINT("\nat_process: [0x%02x] + ", at->st);
     if (at->status != AT_STATUS_OK) {
         AT_PRINT("[0x%02x] -> failed", at->status);
         return;
@@ -238,12 +238,12 @@ void AT_Process(AT *at)
         at->st = handle(at);
         AT_PRINT("[0x%02x]", at->st);
     } else {
-        at->st = AT_Err(at);
+        at->st = at_err(at);
         AT_PRINT("[NULL]");
     }
 }
 
-void AT_Clear(AT *at)
+void at_clear(AT *at)
 {
     at->parse_st    = AT_ST_IDLE;
     at->prev_ev     = AT_EV_OTHER;

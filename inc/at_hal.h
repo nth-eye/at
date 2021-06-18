@@ -26,13 +26,13 @@ typedef enum {
     AT_CODE_BUSY,
     AT_CODE_NO_ANSWER,
     // NOTE: Add manufacturer-specific response codes here.
-    // NOTE: Leave AT_CODE_size at the end.
-    AT_CODE_size
+    // NOTE: Leave AT_CODE_num at the end.
+    AT_CODE_num
 } AT_Code;
 
-AT_Status AT_Tx(char c);
-AT_Status AT_Rx(char *c);
-AT_Status AT_Send(const char *cmd, ...);
+AT_Status at_tx(char c);
+AT_Status at_rx(char *c);
+AT_Status at_send(const char *cmd, ...);
 
 #ifdef __cplusplus
 }

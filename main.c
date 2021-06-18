@@ -41,9 +41,9 @@ int main(void)
 
     AT at;
 
-    AT_Init(&at, &cfg);
+    at_init(&at, &cfg);
 
     while (1) {
-        AT_Process(&at);
+        at_process(&at);
     }
 }

@@ -4,24 +4,24 @@
 #include "at_hal.h"
 
 // NOTE: Add manufacturer-specific response codes at the end.
-const char *AT_RESULTS[AT_CODE_size] = { 
+const char *AT_RESULTS[AT_CODE_num] = { 
     "OK", "CONNECT", "RING", "NO CARRIER", "ERROR", 
     "_", "NO DIALTONE", "BUSY", "NO ANSWER" 
 };
 
-AT_Status AT_Tx(char c)
+AT_Status at_tx(char c)
 {
     return putc(c, stdout) == EOF ? AT_STATUS_FAIL : AT_STATUS_OK;
 }
 
-AT_Status AT_Rx(char *c)
+AT_Status at_rx(char *c)
 {
     *c = getc(stdin);
 
     return *c == EOF ? AT_STATUS_FAIL : AT_STATUS_OK;
 }
 
-AT_Status AT_Send(const char *cmd, ...)
+AT_Status at_send(const char *cmd, ...)
 {
     char buf[256];
 
@@ -39,7 +39,7 @@ AT_Status AT_Send(const char *cmd, ...)
     buf[len]   = 0;
 
     for (int i = 0; i < len; ++i) {
-        switch (AT_Tx(buf[i])) {
+        switch (at_tx(buf[i])) {
             case AT_STATUS_OK:      break;
             case AT_STATUS_FAIL:    return AT_STATUS_FAIL;
             case AT_STATUS_TIMEOUT: return AT_STATUS_TIMEOUT;

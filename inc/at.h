@@ -22,8 +22,8 @@ typedef enum {
     AT_ST_CODE,
     AT_ST_TEXT,
     AT_ST_END,
-    // NOTE: Leave AT_ST_size at the end.
-    AT_ST_size,
+    // NOTE: Leave AT_ST_num at the end.
+    AT_ST_num,
 } AT_State;
 
 typedef enum {
@@ -35,8 +35,8 @@ typedef enum {
     AT_EV_DIGIT,
     AT_EV_LETTER,
     AT_EV_OTHER,
-    // NOTE: Leave AT_EV_size at the end.
-    AT_EV_size,
+    // NOTE: Leave AT_EV_num at the end.
+    AT_EV_num,
 } AT_Event;
 
 typedef struct AT AT;
@@ -73,9 +73,9 @@ struct AT {
     size_t      cb_idx;
 };
 
-void AT_Init(AT *at, const AT_Cfg *cfg);
-void AT_Process(AT *at);
-void AT_Clear(AT *at);
+void at_init(AT *at, const AT_Cfg *cfg);
+void at_process(AT *at);
+void at_clear(AT *at);
 
 #ifdef __cplusplus
 }
