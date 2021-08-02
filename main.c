@@ -5,22 +5,22 @@
 
 void test(AT *at)
 {
-    printf("\n +TEST: %s\n", at->args ? at->args : "NO ARGS");
+    printf("<%s>: %s \n", __func__, at->args ? at->args : "NO ARGS");
 }
 
 void test_ok(AT *at)
 {
-    printf("\n---- OK code: %d ----\n", at->code);
+    printf("<%s>: OK code is %d \n", __func__, at->code);
 }
 
 void test_error(AT *at)
 {
-    printf("\n---- ERROR code: %d ----\n", at->code);
+    printf("<%s>: ERROR code is %d \n", __func__, at->code);
 }
 
 void no_res_cbks(AT *at)
 {
-    printf("\n #NORESCBKS: %s\n", at->args ? at->args : "NO ARGS");
+    printf("<%s>: %s \n", __func__, at->args ? at->args : "NO ARGS");
 }
 
 int main(void) 

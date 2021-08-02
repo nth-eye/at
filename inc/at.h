@@ -2,16 +2,31 @@
 #define AT_H
 
 #include <stddef.h>
-#include "at_hal.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef AT_PRINT
-#define AT_PRINT(...)
-#warning "To enable debug-print please define AT_PRINT as output mechanism";
-#endif
+typedef enum {
+    AT_STATUS_OK,
+    AT_STATUS_FAIL,
+    AT_STATUS_TIMEOUT,
+} AT_Status;
+
+typedef enum {
+    AT_CODE_OK,
+    AT_CODE_CONNECT,
+    AT_CODE_RING,
+    AT_CODE_NO_CARRIER,
+    AT_CODE_ERROR,
+    AT_CODE_RESERVED,
+    AT_CODE_NO_DIALTONE,
+    AT_CODE_BUSY,
+    AT_CODE_NO_ANSWER,
+    // NOTE: Add manufacturer-specific response codes here.
+    // NOTE: Leave AT_CODE_num at the end.
+    AT_CODE_num
+} AT_Code;
 
 typedef enum {
     AT_ST_IDLE,
@@ -72,6 +87,10 @@ struct AT {
     size_t      pos;
     size_t      cb_idx;
 };
+
+AT_Status at_tx(char c);
+AT_Status at_rx(char *c);
+AT_Status at_send(const char *cmd, ...);
 
 void at_init(AT *at, const AT_Cfg *cfg);
 void at_process(AT *at);

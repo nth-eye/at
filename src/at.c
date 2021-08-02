@@ -3,7 +3,60 @@
 #include <stdbool.h>
 #include "at.h"
 
-extern const char *AT_RESULTS[AT_CODE_num];
+#include <stdarg.h>
+#include <stdio.h>
+
+#define AT_PRINT    printf
+
+#ifndef AT_PRINT
+#define AT_PRINT(...)
+#warning "To enable debug-print please define AT_PRINT as output mechanism";
+#endif
+
+// NOTE: Add manufacturer-specific response codes at the end.
+const char *AT_RESULTS[AT_CODE_num] = { 
+    "OK", "CONNECT", "RING", "NO CARRIER", "ERROR", 
+    "_", "NO DIALTONE", "BUSY", "NO ANSWER" 
+};
+
+AT_Status at_tx(char c)
+{
+    return putc(c, stdout) == EOF ? AT_STATUS_FAIL : AT_STATUS_OK;
+}
+
+AT_Status at_rx(char *c)
+{
+    *c = getc(stdin);
+
+    return *c == EOF ? AT_STATUS_FAIL : AT_STATUS_OK;
+}
+
+AT_Status at_send(const char *cmd, ...)
+{
+    char buf[256];
+
+    va_list args;
+    va_start(args, cmd);
+
+    int len = vsnprintf(buf, sizeof(buf) - 2, cmd, args);
+    if (len < 0 || len > (int) sizeof(buf) - 3)
+        return AT_STATUS_FAIL;
+
+    va_end(args);
+
+    buf[len++] = '\r';
+    buf[len++] = '\n';
+    buf[len]   = 0;
+
+    for (int i = 0; i < len; ++i) {
+        switch (at_tx(buf[i])) {
+            case AT_STATUS_OK:      break;
+            case AT_STATUS_FAIL:    return AT_STATUS_FAIL;
+            case AT_STATUS_TIMEOUT: return AT_STATUS_TIMEOUT;
+        }
+    }
+    return AT_STATUS_OK;
+}
 
 static bool at_save_c(AT *at)
 {
@@ -70,6 +123,8 @@ static AT_State handle_res(AT *at, int res)
 
 static AT_State handle_rsp(AT *at)
 {
+    AT_PRINT("[%s]: %s\n", at->buf, at->args ? at->args : "NO ARGS");
+
     for (size_t i = 0; i < at->cbks_size; ++i) {
         if (at->cbks[i].cb && !strcmp(at->cbks[i].cmd, at->buf)) {
             at->cbks[i].cb(at);
@@ -100,6 +155,8 @@ static AT_State handle_code(AT *at)
 static AT_State handle_text(AT *at)
 {
     at->buf[--(at->pos)] = 0;
+
+    AT_PRINT("[%s]\n", at->buf);
 
     for (int i = 0; i < AT_CODE_num; ++i) {
         if (!strcmp(AT_RESULTS[i], at->buf) && i != AT_CODE_RESERVED)
@@ -194,7 +251,7 @@ static const AT_Trans TABLE[AT_ST_num][AT_EV_num] =
 {   // AT_EV_CR,    AT_EV_LF,   AT_EV_MARK, AT_EV_SEMI,     AT_EV_SPACE,    AT_EV_DIGIT,    AT_EV_LETTER,   AT_EV_OTHER
     { on_start,     NULL,       on_new_rsp, NULL,           NULL,           on_code,        NULL,           NULL        }, // AT_ST_IDLE
     { on_start,     on_start,   on_new_rsp, on_new_text,    on_new_text,    on_new_text,    on_new_text,    on_new_text }, // AT_ST_START
-    { on_end_cr,    NULL,       on_rsp,     on_semi,        NULL,           on_rsp,         on_rsp,         NULL        }, // AT_ST_RSP
+    { on_end_cr,    NULL,       on_rsp,     on_semi,        on_rsp,         on_rsp,         on_rsp,         NULL        }, // AT_ST_RSP
     { NULL,         NULL,       NULL,       NULL,           on_space,       NULL,           NULL,           NULL        }, // AT_ST_ARGS_START
     { on_end_cr,    NULL,       on_args,    on_args,        on_args,        on_args,        on_args,        on_args     }, // AT_ST_ARGS
     { handle_code,  NULL,       NULL,       NULL,           NULL,           on_code,        NULL,           NULL        }, // AT_ST_CODE
@@ -225,22 +282,12 @@ void at_process(AT *at)
     if (at->st == AT_ST_IDLE)
         at_clear(at);
 
-    AT_PRINT("\nat_process: [0x%02x] + ", at->st);
-    if (at->status != AT_STATUS_OK) {
-        AT_PRINT("[0x%02x] -> failed", at->status);
+    if (at->status != AT_STATUS_OK)
         return;
-    }
-    AT_PRINT("[0x%02x] -> ", at->ev);
 
     AT_Trans handle = TABLE[at->st][at->ev];
 
-    if (handle) {
-        at->st = handle(at);
-        AT_PRINT("[0x%02x]", at->st);
-    } else {
-        at->st = at_err(at);
-        AT_PRINT("[NULL]");
-    }
+    at->st = handle ? handle(at) : at_err(at);
 }
 
 void at_clear(AT *at)
