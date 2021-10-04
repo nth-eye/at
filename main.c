@@ -1,42 +1,26 @@
 #include <stdio.h>
 #include "at.h"
 
-#define SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define SIZE(x)         (sizeof(x) / sizeof(x[0]))
+#define LOG(fmt, ...)   printf("<%s> " fmt "\n", __func__, ##__VA_ARGS__)
 
 void test(AT *at)
 {
-    printf("<%s>: %s \n", __func__, at->args ? at->args : "NO ARGS");
-}
-
-void test_ok(AT *at)
-{
-    printf("<%s>: OK code is %d \n", __func__, at->code);
-}
-
-void test_error(AT *at)
-{
-    printf("<%s>: ERROR code is %d \n", __func__, at->code);
-}
-
-void no_res_cbks(AT *at)
-{
-    printf("<%s>: %s \n", __func__, at->args ? at->args : "NO ARGS");
+    LOG(": %s ", at->param);
 }
 
 int main(void) 
 {
-    AT_Callback test_res_cbks[] = { test_ok, NULL, NULL, NULL, test_error, NULL, NULL, NULL, NULL };
     AT_Cmd callbacks[] = { 
-        { "+TEST",      test,           test_res_cbks },
-        { "#NORESCBKS", no_res_cbks,    NULL },
+        { "+TEST",  test    },
     };
     char buf[128];
 
     const AT_Cfg cfg = {
-        .cbks = callbacks,
-        .buf = buf, 
-        .cbks_size = SIZE(callbacks),
-        .buf_size = SIZE(buf),
+        .cbks       = callbacks,
+        .buf        = buf, 
+        .cbks_size  = SIZE(callbacks),
+        .buf_size   = SIZE(buf),
     };
 
     AT at;
@@ -44,6 +28,12 @@ int main(void)
     at_init(&at, &cfg);
 
     while (1) {
-        at_process(&at);
+
+        char c = getc(stdin);
+
+        at_process(&at, c);
+
+        if (at.rsp == AT_RSP_OK)
+            LOG("got OK");
     }
 }
