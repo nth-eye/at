@@ -100,7 +100,7 @@ static AT_State on_urc(AT *at)
 
 static AT_State on_new_urc(AT *at)
 {
-    if (at->prev_ev != AT_EV_CR && at_save_c(at))
+    if (at->prev_ev == AT_EV_LF && at_save_c(at))
         return AT_ST_URC;
     return at_err(at);
 }
@@ -154,7 +154,7 @@ static AT_State on_end_lf(AT *at)
 
 static const AT_Trans TABLE[AT_ST_num][AT_EV_num] = 
 {   // AT_EV_CR,    AT_EV_LF,   AT_EV_MARK, AT_EV_SEMI,     AT_EV_SPACE,    AT_EV_OTHER
-    { on_start,     NULL,       on_new_urc, NULL,           NULL,           NULL        }, // AT_ST_IDLE
+    { on_start,     NULL,       NULL,       NULL,           NULL,           NULL        }, // AT_ST_IDLE
     { on_start,     on_start,   on_new_urc, on_new_txt,     on_new_txt,     on_new_txt  }, // AT_ST_START
     { on_end_cr,    NULL,       on_urc,     on_semi,        on_urc,         on_urc      }, // AT_ST_URC
     { NULL,         NULL,       on_param,   on_param,       on_space,       on_param    }, // AT_ST_PARAM_START
