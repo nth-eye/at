@@ -25,7 +25,7 @@ at_init(&at, &cfg);
 
 while (1) {
 
-    char c = getc(...); // Get data from UART from example
+    char c = getc(...); // get byte from UART for example
 
     at_process(&at, c);
 }
