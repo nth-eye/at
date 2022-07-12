@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(at VERSION 0.1.0 LANGUAGES C)
+project(at VERSION 0.1.0)
 
-include_directories(inc)
-file(GLOB SRC_FILES src/*.c)
-add_executable(at main.c ${SRC_FILES})
+add_library(libat INTERFACE)
+target_include_directories(libat INTERFACE inc)
+target_compile_features(libat INTERFACE cxx_std_11)
+target_compile_options(libat INTERFACE "-Wall" "-Wextra" "-Wpedantic")
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wpedantic -Wno-unused-parameter")
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
-include(CPack)
+add_executable(at main.cpp)
+target_link_libraries(at PRIVATE libat)
