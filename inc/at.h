@@ -98,12 +98,12 @@ struct At {
     void clear()
     {
         pos = 0;
+        st  = ST_IDLE;
         reset();
     }
 
     void reset()
     {
-        st      = ST_IDLE;
         rsp     = RSP_num;
         arg     = {};
         txt     = {};
@@ -112,25 +112,21 @@ struct At {
 
     void process(char c)
     {
-        if (full())
-            return;
         constexpr State (At::*table[ST_num][EV_num])() = 
         {   // EV_CR,       EV_LF,      EV_MARK,    EV_SEMI,    EV_SPACE,   EV_OTHER
-            { on_new_cr,    nullptr,    nullptr,    nullptr,    nullptr,    nullptr     }, // ST_IDLE
-            { nullptr,      on_new_lf,  nullptr,    nullptr,    nullptr,    nullptr     }, // ST_NEW_CR
-            { nullptr,      nullptr,    on_new_urc, on_new_txt, on_new_txt, on_new_txt  }, // ST_NEW_LF
-            { nullptr,      nullptr,    on_arg,     on_arg,     on_space,   on_arg      }, // ST_ARG_START
-            { on_end_cr,    nullptr,    on_arg,     on_arg,     on_arg,     on_arg      }, // ST_ARG
-            { on_end_cr,    nullptr,    on_urc,     on_new_arg, on_urc,     on_urc      }, // ST_URC
+            { on_new_cr,    err,        err,        err,        err,        err         }, // ST_IDLE
+            { err,          on_new_lf,  err,        err,        err,        err         }, // ST_NEW_CR
+            { err,          err,        on_new_urc, on_new_txt, on_new_txt, on_new_txt  }, // ST_NEW_LF
+            { err,          err,        on_arg,     on_arg,     on_space,   on_arg      }, // ST_ARG_START
+            { on_end_cr,    err,        on_arg,     on_arg,     on_arg,     on_arg      }, // ST_ARG
+            { on_end_cr,    err,        on_urc,     on_new_arg, on_urc,     on_urc      }, // ST_URC
             { on_end_cr,    on_txt,     on_txt,     on_txt,     on_txt,     on_txt      }, // ST_TXT
             { on_end_cr,    on_end_lf,  on_txt,     on_txt,     on_txt,     on_txt      }, // ST_END
         };
-        auto cb = table[st][next_ev(c)];
-        if (!cb)
-            reset();
-        else
-            st = (this->*cb)();
-        buf[pos++] = c;
+        if (!full()) {
+            st = (this->*table[st][next_ev(c)])();
+            buf[pos++] = c;
+        }
     }
 private:
     static constexpr Event next_ev(char c)
@@ -178,6 +174,12 @@ private:
             }
         }
         return handle_arg();
+    }
+
+    State err()
+    {
+        reset();
+        return ST_IDLE;
     }
 
     State on_arg()
