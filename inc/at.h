@@ -42,10 +42,23 @@ enum Event {
     EV_num,
 };
 
+struct Data {
+    String raw;
+    String txt;
+    String arg;
+    Rsp rsp;
+    bool found;
+};
+
 struct At {
 
     At() = delete;
     At(char *buf, size_t len) : buf{buf}, max{len} {}
+
+    auto data() const
+    {
+        return Data{String{buf, pos}, txt, arg, rsp, found};
+    }
 
     auto raw() const
     {
