@@ -112,7 +112,7 @@ struct At {
 
     void process(char c)
     {
-        constexpr State (At::*table[ST_num][EV_num])() = 
+        static constexpr State (At::*table[ST_num][EV_num])() = 
         {   // EV_CR,       EV_LF,      EV_MARK,    EV_SEMI,    EV_SPACE,   EV_OTHER
             { on_new_cr,    err,        err,        err,        err,        err         }, // ST_IDLE
             { err,          on_new_lf,  err,        err,        err,        err         }, // ST_NEW_CR
@@ -163,7 +163,7 @@ private:
 
     State handle_txt()
     {
-        constexpr String responses[RSP_num] = { 
+        static constexpr String responses[RSP_num] = { 
             "OK", "CONNECT", "RING", "NO CARRIER", "ERROR", 
             "NO DIALTONE", "BUSY", "NO ANSWER", "RDY",
         };
