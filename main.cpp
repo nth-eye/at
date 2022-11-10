@@ -2,16 +2,13 @@
 #include <cctype>
 #include "at.h"
 
-constexpr char bin_to_char(uint8_t bin)
-{
-    return "0123456789abcdef"[bin & 0xf];
-}
-
 inline void log_hex(const void *dat, size_t len)
 {
     if (!dat || !len)
         return;
-
+    auto bin_to_char = [](uint8_t bin) {
+        return "0123456789abcdef"[bin & 0xf];
+    };
     auto p = static_cast<const uint8_t*>(dat);
 
     for (size_t i = 0; i < len; ++i) {
@@ -55,16 +52,14 @@ inline void log_hex(const void *dat, size_t len)
 
 int main() 
 {
-    at::parser<32> parser;
+    at::parser<64> parser;
     
     parser.setup("AT+TEST");
     parser.clear();
 
     while (1) {
 
-        char c = getc(stdin);
-
-        parser.process(c);
+        parser.process(getc(stdin));
 
         if (parser.full()       ||
             parser.acquired()   ||
