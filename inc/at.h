@@ -5,261 +5,195 @@
 
 namespace at {
 
-using String = std::string_view;
+using string = std::string_view;
 
-enum Rsp {
-    RSP_OK,
-    RSP_CONNECT,
-    RSP_RING,
-    RSP_NO_CARRIER,
-    RSP_ERROR,
-    RSP_NO_DIALTONE,
-    RSP_BUSY,
-    RSP_NO_ANSWER,
-    RSP_RDY,
-    RSP_num,
+enum answer {
+    ok,
+    connect,
+    ring,
+    no_carrier,
+    error,
+    no_dialtone,
+    busy,
+    no_answer,
+    rdy,
+    invalid,
 };
 
-enum State {
-    ST_IDLE,
-    ST_NEW_CR,
-    ST_NEW_LF,
-    ST_ARG_START,
-    ST_ARG,
-    ST_URC,
-    ST_TXT,
-    ST_END,
-    ST_num,
-};
-
-enum Event {
-    EV_CR,
-    EV_LF,
-    EV_MARK,
-    EV_SEMI,
-    EV_SPACE,
-    EV_OTHER,
-    EV_num,
-};
-
-struct Data {
-    String raw;
-    String txt;
-    String arg;
-    Rsp rsp;
+struct result {
+    string raw;
+    string arg;
+    answer rsp;
     bool found;
 };
 
-struct At {
-
-    At() = delete;
-    At(char *buf, size_t len) : buf{buf}, max{len} {}
-
-    auto data() const
-    {
-        return Data{String{buf, pos}, txt, arg, rsp, found};
-    }
-
-    auto raw() const
-    {
-        return String{buf, pos};
-    }
-
-    auto line() const
-    {
-        return txt;
-    }
-
-    auto args() const
-    {
-        return arg;
-    }
-
-    auto response() const
-    {
-        return rsp;
-    }
-
-    bool acquired() const
-    {
-        return found;
-    }
-
-    bool full() const
-    {
-        return pos >= max;
-    }
-
-    void setup(String target)
-    {
-        trg = target;
-    }
-
+struct fsm {
+    fsm() = delete;
+    fsm(char* buf, size_t len) : buf{buf}, max{len} {}
+public:
+    auto raw() const            { return string{buf, pos}; }
+    auto data() const           { return result{{buf, pos}, arg, rsp, found}; }
+    auto line() const           { return txt; }
+    auto args() const           { return arg; }
+    auto response() const       { return rsp; }
+    bool acquired() const       { return found; }
+    bool full() const           { return pos >= max; }
+    void setup(string target)   { trg = target; }
     void clear()
     {
         pos = 0;
-        st  = ST_IDLE;
+        st  = st_idle;
+        arg = {};
         reset();
     }
-
     void reset()
     {
-        rsp     = RSP_num;
-        arg     = {};
+        rsp     = invalid;
         txt     = {};
         found   = false;
+        is_arg  = false;
     }
-
     void process(char c)
     {
-        static constexpr State (At::*table[ST_num][EV_num])() = 
-        {   // EV_CR,       EV_LF,      EV_MARK,    EV_SEMI,    EV_SPACE,   EV_OTHER
-            { on_new_cr,    err,        err,        err,        err,        err         }, // ST_IDLE
-            { err,          on_new_lf,  err,        err,        err,        err         }, // ST_NEW_CR
-            { err,          err,        on_new_urc, on_new_txt, on_new_txt, on_new_txt  }, // ST_NEW_LF
-            { err,          err,        on_arg,     on_arg,     on_space,   on_arg      }, // ST_ARG_START
-            { on_end_cr,    err,        on_arg,     on_arg,     on_arg,     on_arg      }, // ST_ARG
-            { on_end_cr,    err,        on_urc,     on_new_arg, on_urc,     on_urc      }, // ST_URC
-            { on_end_cr,    on_txt,     on_txt,     on_txt,     on_txt,     on_txt      }, // ST_TXT
-            { on_end_cr,    on_end_lf,  on_txt,     on_txt,     on_txt,     on_txt      }, // ST_END
+        static constexpr state (fsm::*table[st_][ev_])() = 
+        {   // ev_cr,           ev_lf,              ev_mark,            ev_semi,            ev_space,           ev_other
+            { &fsm::on_new_cr,  &fsm::err,          &fsm::err,          &fsm::err,          &fsm::err,          &fsm::err         }, // st_idle
+            { &fsm::on_new_cr,  &fsm::on_new_lf,    &fsm::err,          &fsm::err,          &fsm::err,          &fsm::err         }, // st_new_cr
+            { &fsm::on_new_cr,  &fsm::err,          &fsm::on_new_urc,   &fsm::on_new_txt,   &fsm::on_new_txt,   &fsm::on_new_txt  }, // st_new_lf
+            { &fsm::err,        &fsm::err,          &fsm::on_arg,       &fsm::on_arg,       &fsm::on_space,     &fsm::on_arg      }, // st_arg_start
+            { &fsm::on_end_cr,  &fsm::err,          &fsm::on_arg,       &fsm::on_arg,       &fsm::on_arg,       &fsm::on_arg      }, // st_arg
+            { &fsm::on_end_cr,  &fsm::err,          &fsm::on_urc,       &fsm::on_new_arg,   &fsm::on_urc,       &fsm::on_urc      }, // st_urc
+            { &fsm::on_end_cr,  &fsm::on_txt,       &fsm::on_txt,       &fsm::on_txt,       &fsm::on_txt,       &fsm::on_txt      }, // st_txt
+            { &fsm::on_end_cr,  &fsm::on_end_lf,    &fsm::on_txt,       &fsm::on_txt,       &fsm::on_txt,       &fsm::on_txt      }, // st_end
         };
         if (!full()) {
             st = (this->*table[st][next_ev(c)])();
             buf[pos++] = c;
         }
     }
-private:
-    static constexpr Event next_ev(char c)
+protected:
+    enum state {
+        st_idle,
+        st_new_cr,
+        st_new_lf,
+        st_arg_start,
+        st_arg,
+        st_urc,
+        st_txt,
+        st_end,
+        st_,
+    };
+    enum event {
+        ev_cr,
+        ev_lf,
+        ev_mark,
+        ev_semi,
+        ev_space,
+        ev_other,
+        ev_,
+    };
+    static constexpr event next_ev(char c)
     {
         switch (c) {
-            case '\r':  return EV_CR;
-            case '\n':  return EV_LF;
+            case '\r':  return ev_cr;
+            case '\n':  return ev_lf;
             case '+':  
             case '#': 
             case '&': 
             case '$':
-            case '%':   return EV_MARK;
-            case ':':   return EV_SEMI;
-            case ' ':   return EV_SPACE;
+            case '%':   return ev_mark;
+            case ':':   return ev_semi;
+            case ' ':   return ev_space;
         }
-        return EV_OTHER;
+        return ev_other;
     }
-
-    auto ptr() const 
+    auto ptr() const
     { 
         return buf + pos; 
     }
-
-    size_t diff(const char *p) const
-    {
-        return ptr() - p;
+    size_t diff(const char* p) const    
+    { 
+        return ptr() - p; 
     }
-
-    State handle_arg()
+    state handle_arg()
     {
-        found = trg == txt;
-        return ST_IDLE;
+        found = trg.empty() || trg == txt;
+        return st_idle;
     }
-
-    State handle_txt()
+    state handle_txt()
     {
-        static constexpr String responses[RSP_num] = { 
+        static constexpr string responses[invalid] = { 
             "OK", "CONNECT", "RING", "NO CARRIER", "ERROR", 
             "NO DIALTONE", "BUSY", "NO ANSWER", "RDY",
         };
-        for (int i = 0; i < RSP_num; ++i) {
+        for (int i = 0; i < invalid; ++i) {
             if (txt == responses[i]) {
-                rsp = Rsp(i);
+                rsp = answer(i);
                 break;
             }
         }
         return handle_arg();
     }
-
-    State err()
+    state err()
     {
         reset();
-        return ST_IDLE;
+        return st_idle;
     }
-
-    State on_arg()
+    state on_end_lf()   { return is_arg ? handle_arg() : handle_txt(); }
+    state on_new_lf()   { return st_new_lf; }
+    state on_arg()      { return st_arg; }
+    state on_urc()      { return st_urc; }
+    state on_txt()      { return st_txt; }
+    state on_space()
     {
-        return ST_ARG;
-    }
-
-    State on_urc()
-    {
-        return ST_URC;
-    }
-
-    State on_txt()
-    {
-        return ST_TXT;
-    }
-
-    State on_space()
-    {
+        is_arg = true;
         arg = {ptr() + 1, 0};
-        return ST_ARG;
+        return st_arg;
     }
-
-    State on_new_arg()
+    state on_new_arg()
     {
         txt = {txt.begin(), diff(txt.begin())};
-        return ST_ARG_START;
+        return st_arg_start;
     }
-
-    State on_new_urc()
+    state on_new_urc()
     {
         txt = {ptr(), 0};
-        return ST_URC;
+        return st_urc;
     }
-
-    State on_new_txt()
+    state on_new_txt()
     {
         txt = {ptr(), 0};
-        return ST_TXT;
+        return st_txt;
     }
-
-    State on_new_cr()
+    state on_new_cr()
     {
         reset();
-        return ST_NEW_CR;
+        return st_new_cr;
     }
-
-    State on_new_lf()
+    state on_end_cr()
     {
-        return ST_NEW_LF;
-    }
-
-    State on_end_cr()
-    {
-        if (arg.begin())
+        if (is_arg)
             arg = {arg.begin(), diff(arg.begin())};
         else
             txt = {txt.begin(), diff(txt.begin())};
-        return ST_END;
+        return st_end;
     }
-
-    State on_end_lf()
-    {
-        return arg.empty() ? handle_txt() : handle_arg();
-    }
-private:
-    String  trg;    // Target string to match
-    String  arg;    // Parsed string with arguments (parameters)
-    String  txt;    // Parsed string with last text line
-    char    *buf;
+protected:
+    string  trg;    // Target string to match
+    string  arg;    // Parsed string with arguments (parameters)
+    string  txt;    // Parsed string with last text line
+    char*   buf;
     size_t  max;
     size_t  pos     = 0;
-    State   st      = ST_IDLE;
-    Rsp     rsp     = RSP_num;
+    state   st      = st_idle;
+    answer  rsp     = invalid;
     bool    found   = false;
+    bool    is_arg  = false;
 };
 
 template<size_t N>
-struct Parser : At {
-    Parser() : At{buf, N} {}
+struct parser : fsm {
+    parser() : fsm{buf, N} {}
 private:
     char buf[N];
 };

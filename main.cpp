@@ -53,11 +53,11 @@ inline void log_hex(const void *dat, size_t len)
     }
 }
 
-int main(void) 
+int main() 
 {
-    at::Parser<128> parser;
+    at::parser<32> parser;
     
-    parser.setup("+TEST");
+    parser.setup("AT+TEST");
     parser.clear();
 
     while (1) {
@@ -66,30 +66,17 @@ int main(void)
 
         parser.process(c);
 
-        if (parser.full()) {
-            printf("+-------FULL-------+\n");
+        if (parser.full()       ||
+            parser.acquired()   ||
+            parser.response()   != at::invalid) 
+        {
+            puts("+-------RAW_-------+");
             log_hex(parser.raw().data(), parser.raw().size());
-            printf("+------------------+\n");
-            parser.clear();
-        }
-
-        if (parser.response() != at::RSP_num) {
-            printf("+--------RAW-------+\n");
-            log_hex(parser.raw().data(), parser.raw().size());
-            printf("+--------RSP-------+\n");
+            puts("+-------LINE-------+");
             log_hex(parser.line().data(), parser.line().size());
-            printf("+------------------+\n");
-            parser.clear();
-        }
-
-        if (parser.acquired()) {
-            printf("+--------RAW-------+\n");
-            log_hex(parser.raw().data(), parser.raw().size());
-            printf("+--------TXT-------+\n");
-            log_hex(parser.line().data(), parser.line().size());
-            printf("+--------ARG-------+\n");
+            puts("+-------ARGS-------+");
             log_hex(parser.args().data(), parser.args().size());
-            printf("+------------------+\n");
+            puts("+------------------+");
             parser.clear();
         }
     }
