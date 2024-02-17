@@ -1,10 +1,10 @@
 # at
 
-Parser of AT modem responses as finite-state machine.
+The library provides a minimalistic and efficient solution for parsing and handling AT commands, commonly used in communication with modems and other network interfaces. The core is a finite state machine (FSM) that interprets the responses from AT command interfaces.
 
-## Guide
+To use the library, simply instantiate a parser with the desired buffer size, feed input characters into the FSM via the `process` method, and retrieve parsed results through the `get_result` method. The FSM handles the complexities of AT command syntax, providing a straightforward interface for command response handling.
 
-## Examples
+## Example
 
 ```cpp
 at::parser<64> parser;
@@ -21,13 +21,13 @@ while (1) {
         parser.response()   != at::invalid) 
     {
         puts("+-------RAW_-------+");
-        log_hex(parser.raw().data(), parser.raw().size());
+        log_hex(parser.get_raw());
         puts("+-------LINE-------+");
-        log_hex(parser.line().data(), parser.line().size());
+        log_hex(parser.get_line());
         puts("+-------ARGS-------+");
-        log_hex(parser.args().data(), parser.args().size());
+        log_hex(parser.get_args());
         puts("+------------------+");
-        break;
+        parser.clear();
     }
 }
 ```
@@ -36,7 +36,4 @@ while (1) {
 
 - [x] source
 - [ ] tests
-- [ ] readme
-    - [ ] intro
-    - [ ] guide
-    - [x] examples
+- [x] readme

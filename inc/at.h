@@ -5,8 +5,6 @@
 
 namespace at {
 
-using string = std::string_view;
-
 enum answer {
     ok,
     connect,
@@ -21,8 +19,8 @@ enum answer {
 };
 
 struct result {
-    string raw;
-    string arg;
+    std::string_view raw;
+    std::string_view arg;
     answer rsp;
     bool found;
 };
@@ -31,14 +29,17 @@ struct fsm {
     fsm() = delete;
     fsm(char* buf, size_t len) : buf{buf}, max{len} {}
 public:
-    auto raw() const            { return string{buf, pos}; }
-    auto data() const           { return result{{buf, pos}, arg, rsp, found}; }
-    auto line() const           { return txt; }
-    auto args() const           { return arg; }
-    auto response() const       { return rsp; }
-    bool acquired() const       { return found; }
-    bool full() const           { return pos >= max; }
-    void setup(string target)   { trg = target; }
+    auto get_result() const { return result{{buf, pos}, arg, rsp, found}; }
+    auto get_raw() const    { return std::string_view{buf, pos}; }
+    auto get_line() const   { return txt; }
+    auto get_args() const   { return arg; }
+    auto response() const   { return rsp; }
+    bool acquired() const   { return found; }
+    bool full() const       { return pos >= max; }
+    void setup(std::string_view target)   
+    { 
+        trg = target; 
+    }
     void clear()
     {
         pos = 0;
@@ -122,7 +123,7 @@ protected:
     }
     state handle_txt()
     {
-        static constexpr string responses[invalid] = { 
+        static constexpr std::string_view responses[invalid] = { 
             "OK", "CONNECT", "RING", "NO CARRIER", "ERROR", 
             "NO DIALTONE", "BUSY", "NO ANSWER", "RDY",
         };
@@ -179,16 +180,16 @@ protected:
         return st_end;
     }
 protected:
-    string  trg;    // Target string to match
-    string  arg;    // Parsed string with arguments (parameters)
-    string  txt;    // Parsed string with last text line
-    char*   buf;
-    size_t  max;
-    size_t  pos     = 0;
-    state   st      = st_idle;
-    answer  rsp     = invalid;
-    bool    found   = false;
-    bool    is_arg  = false;
+    std::string_view trg; // Target string to match
+    std::string_view arg; // Parsed string with arguments (parameters)
+    std::string_view txt; // Parsed string with last text line
+    char* buf;
+    size_t max;
+    size_t pos  = 0;
+    state st    = st_idle;
+    answer rsp  = invalid;
+    bool found  = false;
+    bool is_arg = false;
 };
 
 template<size_t N>

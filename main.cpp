@@ -1,17 +1,19 @@
 #include <cstdio>
 #include <cctype>
+#include <cstdint>
+#include <cstddef>
 #include "at.h"
 
-inline void log_hex(const void *dat, size_t len)
+static inline void log_hex(std::string_view str)
 {
-    if (!dat || !len)
+    if (str.empty())
         return;
     auto bin_to_char = [](uint8_t bin) {
         return "0123456789abcdef"[bin & 0xf];
     };
-    auto p = static_cast<const uint8_t*>(dat);
+    auto p = str.data();
 
-    for (size_t i = 0; i < len; ++i) {
+    for (size_t i = 0; i < str.size(); ++i) {
 
         if (!(i & 15)) {
             putchar('|');
@@ -34,13 +36,13 @@ inline void log_hex(const void *dat, size_t len)
             putchar('\n');
         }
     }
-    int rem = len - ((len >> 4) << 4);
+    int rem = str.size() - ((str.size() >> 4) << 4);
     if (rem) {
         for (int j = (16 - rem) * 3 + ((~rem & 8) >> 3); j >= 0; --j)
             putchar(' ');
         putchar('|');
         for (int j = rem; j; --j) {
-            char c = p[len - j];
+            char c = p[str.size() - j];
             putchar(isprint(c) ? c : '.');
         }
         for (int j = 0; j < 16 - rem; ++j)
@@ -54,7 +56,7 @@ int main()
 {
     at::parser<64> parser;
     
-    parser.setup("AT+TEST");
+    parser.setup("+TEST");
     parser.clear();
 
     while (1) {
@@ -66,11 +68,11 @@ int main()
             parser.response()   != at::invalid) 
         {
             puts("+-------RAW_-------+");
-            log_hex(parser.raw().data(), parser.raw().size());
+            log_hex(parser.get_raw());
             puts("+-------LINE-------+");
-            log_hex(parser.line().data(), parser.line().size());
+            log_hex(parser.get_line());
             puts("+-------ARGS-------+");
-            log_hex(parser.args().data(), parser.args().size());
+            log_hex(parser.get_args());
             puts("+------------------+");
             parser.clear();
         }
